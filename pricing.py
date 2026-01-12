@@ -6,6 +6,7 @@ import re
 import sqlite3
 import smtplib
 import urllib.request
+import base64
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfgen import canvas
@@ -203,6 +204,15 @@ def smtp_settings():
         "use_tls": use_tls,
         "use_ssl": use_ssl,
     }
+
+
+def resend_settings():
+    # Gather Resend settings if configured.
+    api_key = os.environ.get("RESEND_API_KEY", "").strip()
+    sender = os.environ.get("RESEND_FROM", "").strip()
+    if not api_key or not sender:
+        return None
+    return {"api_key": api_key, "sender": sender}
 
 
 def sheets_settings():
@@ -509,6 +519,43 @@ def send_quote_email(settings, recipient, subject, body, attachments):
         if settings["user"] and settings["password"]:
             server.login(settings["user"], settings["password"])
         server.send_message(msg)
+
+
+def send_quote_email_resend(settings, recipient, subject, body, attachments):
+    # Send the quote via Resend API with attachments.
+    if not settings or not settings.get("api_key") or not settings.get("sender"):
+        raise ValueError("Resend settings are missing or incomplete")
+
+    payload = {
+        "from": settings["sender"],
+        "to": [recipient],
+        "subject": subject,
+        "text": body,
+        "attachments": [],
+    }
+
+    for path in attachments:
+        with open(path, "rb") as f:
+            data = f.read()
+        payload["attachments"].append(
+            {
+                "filename": os.path.basename(path),
+                "content": base64.b64encode(data).decode("ascii"),
+            }
+        )
+
+    req = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {settings['api_key']}",
+            "Content-Type": "application/json",
+        },
+    )
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        if resp.status < 200 or resp.status >= 300:
+            detail = resp.read().decode("utf-8")
+            raise RuntimeError(f"Resend API error {resp.status}: {detail}")
 
 
 def append_quote_to_sheet(settings, headers, row):

@@ -18,7 +18,9 @@ from pricing import (
     list_materials,
     load_fx_rates,
     parse_pct,
+    resend_settings,
     send_quote_email,
+    send_quote_email_resend,
     sheets_settings,
     smtp_settings,
 )
@@ -661,8 +663,9 @@ async def chat_api(request: Request):
 
                 email_state = "skipped"
                 if send_email:
+                    resend = resend_settings()
                     settings = smtp_settings()
-                    if settings is None:
+                    if resend is None and settings is None:
                         email_state = "not_configured"
                     else:
                         subject = f"Quotation {result['quote_id']} from {defaults['sender_name']}"
@@ -676,13 +679,22 @@ async def chat_api(request: Request):
                             f"Regards,\n{defaults['sender_name']}\n"
                         )
                         try:
-                            send_quote_email(
-                                settings,
-                                inputs["customer_email"],
-                                subject,
-                                body,
-                                [result["out_path"], result["out_txt_path"], result["out_pdf_path"]],
-                            )
+                            if resend is not None:
+                                send_quote_email_resend(
+                                    resend,
+                                    inputs["customer_email"],
+                                    subject,
+                                    body,
+                                    [result["out_path"], result["out_txt_path"], result["out_pdf_path"]],
+                                )
+                            else:
+                                send_quote_email(
+                                    settings,
+                                    inputs["customer_email"],
+                                    subject,
+                                    body,
+                                    [result["out_path"], result["out_txt_path"], result["out_pdf_path"]],
+                                )
                             email_state = "sent"
                         except Exception as exc:
                             print(f"[email] send failed: {exc!r}")

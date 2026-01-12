@@ -65,7 +65,24 @@ Please add them to your local `.env` (do not commit them), and remove/revoke the
 
 ## Email delivery (optional)
 
-If you want the UI to email the quote to the customer, set SMTP env vars:
+If you want the UI to email the quote to the customer, use Resend (recommended on Render) or SMTP.
+
+### Resend (recommended)
+
+Set env vars:
+
+- `RESEND_API_KEY` (required)
+- `RESEND_FROM` (required, verified sender like `Bakery Nation <no-reply@yourdomain.com>`)
+
+Example:
+
+```bash
+RESEND_API_KEY=your_resend_key RESEND_FROM="Bakery Nation <no-reply@yourdomain.com>" python3 -m uvicorn ui:app --reload --port 8080
+```
+
+### SMTP
+
+Set SMTP env vars:
 
 - `SMTP_HOST` (required)
 - `SMTP_PORT` (default `587`)
@@ -125,3 +142,4 @@ Restart the UI server and each confirmed quote will append a row.
 - Template rendering is minimal and supports the current `quote_template.md` placeholders.
 - Live FX depends on external APIs and may fail without network access; set `FX_RATES_JSON` for offline runs.
 - Google Sheets logging and email sending require external credentials and will be skipped if not configured.
+- Render blocks outbound SMTP; use Resend there.
