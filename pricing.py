@@ -498,10 +498,11 @@ def send_quote_email(settings, recipient, subject, body, attachments):
             subtype = "pdf"
         msg.add_attachment(data, maintype=maintype, subtype=subtype, filename=filename)
 
+    timeout = int(os.environ.get("SMTP_TIMEOUT", "15"))
     if settings["use_ssl"]:
-        server = smtplib.SMTP_SSL(settings["host"], settings["port"])
+        server = smtplib.SMTP_SSL(settings["host"], settings["port"], timeout=timeout)
     else:
-        server = smtplib.SMTP(settings["host"], settings["port"])
+        server = smtplib.SMTP(settings["host"], settings["port"], timeout=timeout)
     with server:
         if settings["use_tls"] and not settings["use_ssl"]:
             server.starttls()

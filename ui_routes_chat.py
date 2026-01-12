@@ -685,7 +685,8 @@ async def chat_api(request: Request):
                             )
                             email_state = "sent"
                         except Exception as exc:
-                            email_state = f"failed: {exc.__class__.__name__}"
+                            print(f"[email] send failed: {exc!r}")
+                            email_state = f"failed: {exc.__class__.__name__}: {exc}"
 
                 sheet_settings = sheets_settings()
                 if sheet_settings is not None:
